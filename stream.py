@@ -24,4 +24,4 @@ def calc() :
             mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__" :
-    app.run(host="192.168.101.2", debug=True, threaded=True)
+    app.run(host="0.0.0.0", debug=True, threaded=True)
