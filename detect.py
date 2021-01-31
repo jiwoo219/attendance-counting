@@ -36,9 +36,33 @@ from pycoral.utils.dataset import read_label_file
 from pycoral.utils.edgetpu import make_interpreter
 from pycoral.utils.edgetpu import run_inference
 
+from flask import Flask, render_template, Response
+
+@app.route("/")
+
+def index():
+    return render_template('index.html')
+
+def get_frame():
+    cap = cv2.VideoCapture(0)
+    while True:
+        _, frame = cap.read()
+        imgencode = cv2.imencode('.jpg', frame)[1]
+        stringData = imgencode.tostring()
+        yield (b'--frame\r\n'
+                b'Content-Type: text/plain\r\n\r\n' + stringData + b'\r\n')
+    del(cap)
+
+@app.route('/calc')
+
+def calc():
+    return Response(get_frame(),
+            mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
 def main():
     default_model_dir = '../all_models'
-    default_model = 'mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite'
+    default_model = 'mobilenet_ssd_v2_face_quant_postprocess_edgetpu.tflite'
     default_labels = 'coco_labels.txt'
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', help='.tflite model path',
@@ -97,3 +121,4 @@ def append_objs_to_img(cv2_im, inference_size, objs, labels):
 
 if __name__ == '__main__':
     main()
+    app.run(host="0.0.0.0", debug=True, threaded=True)
