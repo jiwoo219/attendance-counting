@@ -29,6 +29,7 @@ ap.add_argument('-e', '--encodings', required=True,
     help='name of serialized output file of facial encodings')
 args = vars(ap.parse_args())
 
+'''
 # Init OpenCV's deep learning face embedding model.
 EMB_MODEL_PATH = './nn4.v2.t7'
 embedder = cv2.dnn.readNetFromTorch(EMB_MODEL_PATH)
@@ -37,13 +38,17 @@ embedder = cv2.dnn.readNetFromTorch(EMB_MODEL_PATH)
 FACE_DET_PROTOTXT_PATH = './deploy.prototxt'
 FACE_DET_MODEL_PATH = './res10_300x300_ssd_iter_140000_fp16.caffemodel'
 face_det = cv2.dnn.readNetFromCaffe(FACE_DET_PROTOTXT_PATH, FACE_DET_MODEL_PATH)
+'''
 
 # Init tpu engine.
 DET_MODEL_PATH = './mobilenet_ssd_v2_face_quant_postprocess_edgetpu.tflite'
 face_engine = DetectionEngine(DET_MODEL_PATH)
 
 # Grab the paths to the input images in our dataset.
+'''
 imagePaths = glob(args['dataset'] + '/**/*.*', recursive=True)
+'''
+
 
 # Initialize the list of known encodings and known names.
 knownEncodings = []
@@ -74,6 +79,7 @@ def resize_to_square(img, size, keep_aspect_ratio=False, interpolation=cv2.INTER
 
     return cv2.resize(mask, (size, size), interpolation)
 
+'''
 def dlib_face_det(image):
     # Detect and localize faces using dlib (via face_recognition).
     # Assumes only one face is in image passed.
@@ -145,6 +151,7 @@ def cv2_face_det(image):
     else:
         print('*** no face found! ***')
         return None
+'''
 
 def tpu_face_det(image):
     # Detect faces using TPU engine.
