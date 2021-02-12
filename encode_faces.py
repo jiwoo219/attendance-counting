@@ -14,7 +14,6 @@ import numpy as np
 import argparse
 import pickle
 import cv2
-import face_recognition
 from glob import glob
 from os.path import sep
 from edgetpu.detection.engine import DetectionEngine
@@ -79,80 +78,6 @@ def resize_to_square(img, size, keep_aspect_ratio=False, interpolation=cv2.INTER
 
     return cv2.resize(mask, (size, size), interpolation)
 
-'''
-def dlib_face_det(image):
-    # Detect and localize faces using dlib (via face_recognition).
-    # Assumes only one face is in image passed.
-
-    # Convert image from BGR (OpenCV ordering) to dlib ordering (RGB).
-    rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # Detect the (x, y)-coordinates of the bounding boxes
-    # corresponding to each face in the input image.
-    # NB: model='cnn' causes OOM.
-    boxes = face_recognition.face_locations(rgb,
-        number_of_times_to_upsample=2, model='hog')
-
-    if len(boxes) == 0:
-        print('*** no face found! ***')
-        return None
-
-    # Return bounding box coords in dlib format.
-    return boxes
-
-def cv2_face_det(image):
-    # Detect and localize faces using OpenCV dnn.
-    # Assumes only one face is in image passed.
-
-    # Threshold for valid face detect.
-    CONFIDENCE_THRES = 0.9
-
-    # Construct an input blob for the image and resize and normalize it.
-    blob = cv2.dnn.blobFromImage(cv2.resize(image, (300,300)), 1.0,
-        (300,300), (104.0, 177.0, 123.0))
-
-    # Pass the blob through the network and obtain the detections and
-    # predictions.
-    face_det.setInput(blob)
-    detections = face_det.forward()
-
-    if len(detections) > 0:
-        # We're making the assumption that each image has only ONE
-        # face, so find the bounding box with the largest probability.
-        pred_num = np.argmax(detections[0, 0, :, 2])
-        confidence = detections[0, 0, pred_num, 2]
-        print('detection confidence: {}'.format(confidence))
-    else:
-        print('*** no face found! ***')
-        return None
-        
-    # Filter out weak detections by ensuring the `confidence` is
-    # greater than the minimum confidence.
-    if confidence > CONFIDENCE_THRES:
-        # Compute the (x, y)-coordinates of the bounding box for image.
-        (h, w) = image.shape[:2]
-        print('img h: {} img w: {}'.format(h, w))
-        box = detections[0, 0, pred_num, 3:7] * np.array([w, h, w, h])
-
-        (face_left, face_top, face_right, face_bottom) = box.astype('int')
-        #print('face_left: {} face_top: {} face_right: {} face_bottom: {}'
-            #.format(face_left, face_top, face_right, face_bottom))
-
-        # Return bounding box coords in dlib format.
-        # Sometimes the dnn returns bboxes larger than image, so check.
-        # If bbox too large just return bbox of whole image.
-        # TODO: figure out why this happens. 
-        (h, w) = image.shape[:2]
-        if (face_right - face_left) > w or (face_bottom - face_top) > h:
-            print('*** bbox out of bounds! ***')
-            return [(0, w, h, 0)]
-        else:
-            return [(face_top, face_right, face_bottom, face_left)]
-    else:
-        print('*** no face found! ***')
-        return None
-'''
-
 def tpu_face_det(image):
     # Detect faces using TPU engine.
     # Assumes only one face is in image passed.
@@ -206,18 +131,6 @@ def cv2_encoder(image, boxes):
 
     return encoding
 
-def dlib_encoder(image, boxes):
-    # Encode face into a 128-D representation (embeddings) using dlib.
-
-    # Convert image from BGR (OpenCV ordering) to dlib ordering (RGB).
-    rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # Generate encodings. Only one face is assumed so take the 1st element. 
-    encoding = face_recognition.face_encodings(face_image=rgb,
-        known_face_locations=boxes, num_jitters=10)[0]
-
-    return encoding
-
 # Loop over the image paths.
 # NB: Its assumed that only one face is in each image.
 for (i, imagePath) in enumerate(imagePaths):
@@ -254,8 +167,8 @@ for (i, imagePath) in enumerate(imagePaths):
     # is poor w/o face alignment. 
     # The dlib method is very accurate but relatively slow. 
     print('...encoding face')
-    #encoding = cv2_encoder(image, boxes)
-    encoding = dlib_encoder(image, boxes)
+    encoding = cv2_encoder(image, boxes)
+    #encoding = dlib_encoder(image, boxes)
     #print(encoding)
 
     # Add encoding and name to set of known names and encodings.
