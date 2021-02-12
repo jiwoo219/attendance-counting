@@ -91,7 +91,7 @@ if __name__ == '__main__':
     if src_file == "0":
         src_file = 0
 
-    DET_MODEL_PATH = './mobilenet_ssd_v2_face_quant_postprocess_edgetpu.tflite'
+    DET_MODEL_PATH = './ssd_mobilenet_v2_face_quant_postprocess_edgetpu.tflite'
     face_engine = DetectionEngine(DET_MODEL_PATH)
 
     src = cv2.VideoCapture(src_file)
