@@ -36,7 +36,7 @@ def tpu_face_det(image):
     res = resize_to_square(img=image, size=320, keep_aspect_ratio=True,
         interpolation=cv2.INTER_AREA)
 
-    detection = face_engine.DetectWithInputTensor(input_tensor=res.reshape(-1),
+    detection = face_engine.detect_with_input_tensor(input_tensor=res.reshape(-1),
         threshold=CONFIDENCE_THRES, top_k=1)
 
     if not detection:
