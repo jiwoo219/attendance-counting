@@ -27,6 +27,58 @@ def resize_to_square(img, size, keep_aspect_ratio=False, interpolation=cv2.INTER
 
     return cv2.resize(mask, (size, size), interpolation)
 
+def cv2_face_det(image):
+    # Detect and localize faces using OpenCV dnn.
+    # Assumes only one face is in image passed.
+
+    # Threshold for valid face detect.
+    CONFIDENCE_THRES = 0.9
+
+    # Construct an input blob for the image and resize and normalize it.
+    blob = cv2.dnn.blobFromImage(cv2.resize(image, (300,300)), 1.0,
+        (300,300), (104.0, 177.0, 123.0))
+
+    # Pass the blob through the network and obtain the detections and
+    # predictions.
+    face_det.setInput(blob)
+    detections = face_det.forward()
+
+    if len(detections) > 0:
+        # We're making the assumption that each image has only ONE
+        # face, so find the bounding box with the largest probability.
+        pred_num = np.argmax(detections[0, 0, :, 2])
+        confidence = detections[0, 0, pred_num, 2]
+        print('detection confidence: {}'.format(confidence))
+    else:
+        print('*** no face found! ***')
+        return None
+        
+    # Filter out weak detections by ensuring the `confidence` is
+    # greater than the minimum confidence.
+    if confidence > CONFIDENCE_THRES:
+        # Compute the (x, y)-coordinates of the bounding box for image.
+        (h, w) = image.shape[:2]
+        print('img h: {} img w: {}'.format(h, w))
+        box = detections[0, 0, pred_num, 3:7] * np.array([w, h, w, h])
+
+        (face_left, face_top, face_right, face_bottom) = box.astype('int')
+        #print('face_left: {} face_top: {} face_right: {} face_bottom: {}'
+            #.format(face_left, face_top, face_right, face_bottom))
+
+        # Return bounding box coords in dlib format.
+        # Sometimes the dnn returns bboxes larger than image, so check.
+        # If bbox too large just return bbox of whole image.
+        # TODO: figure out why this happens. 
+        (h, w) = image.shape[:2]
+        if (face_right - face_left) > w or (face_bottom - face_top) > h:
+            print('*** bbox out of bounds! ***')
+            return [(0, w, h, 0)]
+        else:
+            return [(face_top, face_right, face_bottom, face_left)]
+    else:
+        print('*** no face found! ***')
+        return None
+
 def tpu_face_det(image):
     # Detect faces using TPU engine.
     CONFIDENCE_THRES = 0.05
@@ -91,8 +143,17 @@ if __name__ == '__main__':
     if src_file == "0":
         src_file = 0
 
-    DET_MODEL_PATH = './mobilenet_ssd_v2_face_quant_postprocess_edgetpu.tflite'
-    face_engine = DetectionEngine(DET_MODEL_PATH)
+    # Init OpenCV's deep learning face embedding model.
+    EMB_MODEL_PATH = './nn4.v2.t7'
+    embedder = cv2.dnn.readNetFromTorch(EMB_MODEL_PATH)
+
+    # Init OpenCV's dnn face detection and localization model.
+    FACE_DET_PROTOTXT_PATH = './deploy.prototxt'
+    FACE_DET_MODEL_PATH = './res10_300x300_ssd_iter_140000_fp16.caffemodel'
+    face_det = cv2.dnn.readNetFromCaffe(FACE_DET_PROTOTXT_PATH, FACE_DET_MODEL_PATH)
+    
+    #DET_MODEL_PATH = './mobilenet_ssd_v2_face_quant_postprocess_edgetpu.tflite'
+    #face_engine = DetectionEngine(DET_MODEL_PATH)
 
     src = cv2.VideoCapture(src_file)
     if not src.isOpened():
@@ -103,7 +164,7 @@ if __name__ == '__main__':
         ret, frame = src.read()
 
         print('...finding face in image')
-        boxes = tpu_face_det(frame)
+        boxes = cv2_face_det(frame)
 
         if boxes is None:
             continue
