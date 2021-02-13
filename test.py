@@ -164,7 +164,7 @@ if __name__ == '__main__':
         ret, frame = src.read()
 
         print('...finding face in image')
-        boxes = cv2_face_det(frame)
+        boxes = tpu_face_det(frame)
 
         if boxes is None:
             continue
