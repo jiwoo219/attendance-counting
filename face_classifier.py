@@ -176,6 +176,8 @@ if __name__ == '__main__':
     src_file = args.inputfile
     if src_file == "0":
         src_file = 0
+    elif src_file == "1":
+        src_file = 1
 
     src = cv2.VideoCapture(src_file)
     if not src.isOpened():
