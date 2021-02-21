@@ -76,22 +76,82 @@ class FaceClassifier():
             faces.append(face)
         return faces
 
-    def compare_with_known_persons(self, face, persons):
-        if len(persons) == 0:
+    def compare_with_knowns(self, face, knowns):
+        if len(knowns) == 0:
             return None
 
-        # see if the face is a match for the faces of known person
+        # see if the face is a match for the faces of knowns
+        encodings = [person.encoding for person in knowns]
+        distances = face_recognition.face_distance(encodings, face.encoding)
+        index = np.argmin(distances)
+        min_value = distances[index]
+
+        if min_value < self.similarity_threshold:
+            now = time.localtime()
+            now_time = now.tm_min + 0.01 * now.tm_sec
+
+            if len(knowns[index].faces) == 0:
+                knowns[index].count += 1
+                knowns[index].add_face(face)
+                # re-calculate encoding
+                knowns[index].calculate_average_encoding()
+                face.name = knowns[index].name
+            else:
+                if now_time - knowns[index].last_time() > 0.05:
+                    knowns[index].count += 1
+                knowns[index].add_face(face)
+                # re-calculate encoding
+                knowns[index].calculate_average_encoding()
+                face.name = knowns[index].name
+
+            return knowns[index]
+        else:
+            return None
+            
+
+    def compare_with_persons(self, face, persons):
+        if len(persons) == 0:
+            person = Person()
+            person.count += 1
+            person.add_face(face)
+            person.calculate_average_encoding()
+            face.name = person.name
+            persons.append(person)
+            return person
+
         encodings = [person.encoding for person in persons]
         distances = face_recognition.face_distance(encodings, face.encoding)
         index = np.argmin(distances)
         min_value = distances[index]
+
         if min_value < self.similarity_threshold:
-            # face of known person
-            persons[index].add_face(face)
-            # re-calculate encoding
-            persons[index].calculate_average_encoding()
-            face.name = persons[index].name
+            now = time.localtime()
+            now_time = now.tm_min + 0.01 * now.tm_sec
+
+            if len(persons[index].faces) == 0:
+                persons[index].count += 1
+                persons[index].add_face(face)
+                # re-calculate encoding
+                persons[index].calculate_average_encoding()
+                face.name = persons[index].name
+            else:
+                if now_time - persons[index].last_time() > 0.05:
+                    persons[index].count += 1
+                persons[index].add_face(face)
+                # re-calculate encoding
+                persons[index].calculate_average_encoding()
+                face.name = persons[index].name
+
             return persons[index]
+        else:
+            person = Person()
+            person.count += 1
+            person.add_face(face)
+            person.calculate_average_encoding()
+            face.name = person.name
+            persons.append(person)
+            return person
+
 
     def compare_with_unknown_faces(self, face, unknown_faces):
         if len(unknown_faces) == 0:
@@ -154,6 +214,7 @@ if __name__ == '__main__':
     import time
     import os
 
+    # argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("inputfile",
                     help="video file to detect or '0' to detect from web cam")
@@ -173,6 +234,7 @@ if __name__ == '__main__':
                     help="resize the frame to process (less time, less accuracy)")
     args = ap.parse_args()
 
+    # set inputfile
     src_file = args.inputfile
     if src_file == "0":
         src_file = 0
@@ -190,14 +252,16 @@ if __name__ == '__main__':
     frames_between_capture = int(round(frame_rate * args.seconds))
 
     print("source", args.inputfile)
+    
     print("original: %dx%d, %f frame/sec" % (src.get(3), src.get(4), frame_rate))
     ratio = float(args.resize_ratio)
     if ratio != 1.0:
         s = "RESIZE_RATIO: " + args.resize_ratio
         s += " -> %dx%d" % (int(src.get(3) * ratio), int(src.get(4) * ratio))
         print(s)
+    
     print("process every %d frame" % frames_between_capture)
-    print("similarity shreshold:", args.threshold)
+    print("similarity threshold:", args.threshold)
     if args.stop > 0:
         print("Detecting will be stopped after %d second." % args.stop)
 
@@ -205,10 +269,8 @@ if __name__ == '__main__':
     result_dir = "result"
     pdb = PersonDB()
     pdb.load_db(result_dir)
-    '''
-    pdb.print_persons()
-    '''
-    print(pdb.persons)
+    #pdb.print_persons()
+
     
     # prepare capture directory
     num_capture = 0
@@ -230,12 +292,10 @@ if __name__ == '__main__':
         print("Press ^C to stop detecting...")
 
 
-
     fc = FaceClassifier(args.threshold, ratio)
     frame_id = 0
     running = True
 
-    total_start_time = time.time()
     while running:
         ret, frame = src.read()
         if frame is None:
@@ -256,12 +316,17 @@ if __name__ == '__main__':
         # this is core
         faces = fc.detect_faces(frame)
         for face in faces:
-            person = fc.compare_with_known_persons(face, pdb.persons)
+            person = fc.compare_with_knowns(face, pdb.knowns)
             if person:
                 continue
+            person = fc.compare_with_persons(face, pdb.persons)
+
+            '''
             person = fc.compare_with_unknown_faces(face, pdb.unknown.faces)
             if person:
                 pdb.persons.append(person)
+            '''
+
 
         if args.display or args.capture:
             for face in faces:
@@ -295,9 +360,6 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, prev_handler)
     running = False
     src.release()
-    total_elapsed_time = time.time() - total_start_time
-    print()
-    print("total elapsed time: %.3f second" % total_elapsed_time)
 
     pdb.save_db(result_dir)
     pdb.print_persons()
