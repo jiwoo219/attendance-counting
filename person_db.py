@@ -17,13 +17,9 @@ class Face():
         self.filename = filename
         self.image = image
         self.encoding = face_encoding
+        
+        self.time = time.localtime()
 
-    '''
-    def save(self, base_dir):
-        # save image
-        pathname = os.path.join(base_dir, self.filename)
-        cv2.imwrite(pathname, self.image)
-    '''
 
     @classmethod
     def get_encoding(cls, image):
@@ -56,9 +52,9 @@ class Person():
                     Person._last_id = id
         self.encoding = None
         self.faces = []
+        self.count = 0
 
     def add_face(self, face):
-        # add face
         self.faces.append(face)
 
     def calculate_average_encoding(self):
@@ -73,25 +69,8 @@ class Person():
         distances = face_recognition.face_distance(encodings, self.encoding)
         return min(distances), np.mean(distances), max(distances)
 
-    '''
-    def save_faces(self, base_dir):
-        pathname = os.path.join(base_dir, self.name)
-        try:
-            shutil.rmtree(pathname)
-        except OSError as e:
-            pass
-        os.mkdir(pathname)
-        for face in self.faces:
-            face.save(pathname)
-
-    def save_montages(self, base_dir):
-        images = [face.image for face in self.faces]
-        montages = imutils.build_montages(images, (128, 128), (6, 2))
-        for i, montage in enumerate(montages):
-            filename = "montage." + self.name + ("-%02d.png" % i)
-            pathname = os.path.join(base_dir, filename)
-            cv2.imwrite(pathname, montage)
-    '''
+    def last_time(self):
+        return self.faces[-1].time.tm_min + 0.01 * self.faces[-1].time.tm_sec
 
     @classmethod
     def load(cls, pathname, face_encodings):
@@ -109,10 +88,7 @@ class Person():
                 face_encoding = Face.get_encoding(image)
             if face_encoding is None:
                 print(pathname, face_filename, "drop face")
-            else:
-                face = Face(face_filename, image, face_encoding)
-                person.faces.append(face)
-        print(person.name, "has", len(person.faces), "faces")
+
         person.calculate_average_encoding()
         return person
 
@@ -122,6 +98,7 @@ class Person():
 class PersonDB():
     def __init__(self):
         self.persons = []
+        self.knowns = []
         self.unknown_dir = "unknowns"
         self.encoding_file = "face_encodings"
         self.unknown = Person(self.unknown_dir)
@@ -130,9 +107,7 @@ class PersonDB():
         if not os.path.isdir(dir_name):
             return
         print("Start loading persons in the directory '%s'" % dir_name)
-        '''
         start_time = time.time()
-        '''
 
         # read face_encodings
         pathname = os.path.join(dir_name, self.encoding_file)
@@ -149,22 +124,25 @@ class PersonDB():
             person = Person(key)
             person.set_encoding(face_encodings[key])
             self.persons.append(person)
-        '''
-        for entry in os.scandir(dir_name):
-            if entry.is_dir(follow_symlinks=False):
-                pathname = os.path.join(dir_name, entry.name)
-                person = Person.load(pathname, face_encodings)
-                if len(person.faces) == 0:
-                    continue
-                if entry.name == self.unknown_dir:
-                    self.unknown = person
-                else:
-                    self.persons.append(person)
-
         
+        # load knowns
+        knownsdir = 'knowns'
+        files = os.listdir(knownsdir)
+        for filename in files:
+            name, ext = os.path.splitext(filename)
+            if ext == '.jpg':
+                person = Person(name)
+                pathname = os.path.join(knownsdir, filename)
+                img = face_recognition.load_image_file(pathname)
+                face_encodings = face_recognition.face_encodings(img)[0]
+                person.set_encoding(face_encodings)
+                self.knowns.append(person)
+
+        print("Successfully loading knowns in", knownsdir)
+
         elapsed_time = time.time() - start_time
         print("Loading persons finished in %.3f sec." % elapsed_time)
-        '''
+        
 
     def save_encodings(self, dir_name):
         face_encodings = {}
@@ -178,13 +156,8 @@ class PersonDB():
         with open(pathname, "wb") as f:
             pickle.dump(face_encodings, f)
         print(pathname, "saved")
-    '''
-    def save_montages(self, dir_name):
-        for person in self.persons:
-            person.save_montages(dir_name)
-        self.unknown.save_montages(dir_name)
-        print("montages saved")
-    '''
+  
+
     def save_db(self, dir_name):
         print("Start saving persons in the directory '%s'" % dir_name)
         start_time = time.time()
@@ -197,33 +170,34 @@ class PersonDB():
         for person in self.persons:
             person.save_faces(dir_name)
         self.unknown.save_faces(dir_name)
-
-        self.save_montages(dir_name)
         '''
         self.save_encodings(dir_name)
 
         elapsed_time = time.time() - start_time
         print("Saving persons finished in %.3f sec." % elapsed_time)
 
+
     def __repr__(self):
         s = "%d persons" % len(self.persons)
-        num_known_faces = sum(len(person.faces) for person in self.persons)
-        s += ", %d known faces" % num_known_faces
-        s += ", %d unknown faces" % len(self.unknown.faces)
+        #num_known_faces = sum(len(person.faces) for person in self.persons)
+        #s += ", %d known faces" % num_known_faces
+        #s += ", %d unknown faces" % len(self.unknown.faces)
         return s
+
 
     def print_persons(self):
         print(self)
         persons = sorted(self.persons, key=lambda obj : obj.name)
-        encodings = [person.encoding for person in persons]
+        knowns = sorted(self.knowns, key=lambda obj : obj.name)
         
+        for known in knowns:
+            s = "{:10} ->".format(known.name)
+            s += " %d faces" % (known.count)
+            print(s)
+
         for person in persons:
-            distances = face_recognition.face_distance(encodings, person.encoding)
-            s = "{:10} [ ".format(person.name)
-            s += " ".join(["{:5.3f}".format(x) for x in distances])
-            mn, av, mx = person.distance_statistics()
-            s += " ] %.3f, %.3f, %.3f" % (mn, av, mx)
-            s += ", %d faces" % len(person.faces)
+            s = "{:10} ->".format(person.name)
+            s += " %d faces" % (person.count)
             print(s)
 
 
@@ -232,7 +206,4 @@ if __name__ == '__main__':
     pdb = PersonDB()
     pdb.load_db(dir_name)
     pdb.print_persons()
-    '''
-    pdb.save_montages(dir_name)
-    '''
     pdb.save_encodings(dir_name)
