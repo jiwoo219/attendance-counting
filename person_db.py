@@ -166,12 +166,32 @@ class PersonDB():
         except OSError as e:
             pass
         os.mkdir(dir_name)
-        '''
-        for person in self.persons:
-            person.save_faces(dir_name)
-        self.unknown.save_faces(dir_name)
-        '''
+
         self.save_encodings(dir_name)
+
+        # save using txt
+        persons = sorted(self.persons, key=lambda obj : obj.name)
+        knowns = sorted(self.knowns, key=lambda obj : obj.name)
+
+        now = time.localtime()
+        s = "%04d.%02d.%02d %02d.%02d.%02d.txt" % (now.tm_year, now.tm_mon, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec)
+        f = open(s, 'w')
+
+        total_counts = 0
+        total_visitors = 0
+
+        for known in knowns:
+            data = "{} : {}\n".format(known.name, known.count)
+            f.write(data)
+        for person in persons:
+            if person.count > 0:
+                total_visitors += 1
+                total_counts += person.count
+            data = "{:10} : {}\n".format(person.name, person.count)
+            f.write(data)
+        f.write("\ntotal number of unknown faces : {}". format(total_counts))
+        f.write("\ntotal number of visitors : {}". format(total_visitors))
+        f.close()
 
         elapsed_time = time.time() - start_time
         print("Saving persons finished in %.3f sec." % elapsed_time)
@@ -189,7 +209,7 @@ class PersonDB():
         print(self)
         persons = sorted(self.persons, key=lambda obj : obj.name)
         knowns = sorted(self.knowns, key=lambda obj : obj.name)
-        
+
         for known in knowns:
             s = "{:10} ->".format(known.name)
             s += " %d faces" % (known.count)
