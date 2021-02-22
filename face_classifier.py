@@ -269,8 +269,8 @@ if __name__ == '__main__':
     result_dir = "result"
     pdb = PersonDB()
     pdb.load_db(result_dir)
-    #pdb.print_persons()
 
+    total_start_time = time.localtime()
     
     # prepare capture directory
     num_capture = 0
@@ -326,7 +326,14 @@ if __name__ == '__main__':
             if person:
                 pdb.persons.append(person)
             '''
+        
+        now = time.localtime()
+        now_hour = now.tm_hour
+        total_start_hour = total_start_time.tm_hour
 
+        if now_hour - total_start_hour > 0:
+            pdb.save_results(total_start_hour)
+            total_start_time = now
 
         if args.display or args.capture:
             for face in faces:
@@ -363,3 +370,4 @@ if __name__ == '__main__':
 
     pdb.save_db(result_dir)
     pdb.print_persons()
+    pdb.save_results(total_start_hour)

@@ -158,6 +158,34 @@ class PersonDB():
         print(pathname, "saved")
   
 
+    def save_results(self, start_hour):
+        # save using txt
+        persons = sorted(self.persons, key=lambda obj : obj.name)
+        knowns = sorted(self.knowns, key=lambda obj : obj.name)
+
+        now = time.localtime()
+        s = "%04d.%02d.%02d.%02d-%02d.txt" % (now.tm_year, now.tm_mon, now.tm_mday, start_hour, now.tm_hour)
+        f = open(s, 'w')
+
+        total_counts = 0
+        total_visitors = 0
+
+        for known in knowns:
+            data = "{} : {}\n".format(known.name, known.count)
+            known.count = 0
+            f.write(data)
+        for person in persons:
+            if person.count > 0:
+                total_visitors += 1
+                total_counts += person.count
+            data = "{:10} : {}\n".format(person.name, person.count)
+            person.count = 0
+            f.write(data)
+        f.write("total number of unknown faces : {}\n". format(total_counts))
+        f.write("total number of visitors : {}". format(total_visitors))
+        f.close()
+
+
     def save_db(self, dir_name):
         print("Start saving persons in the directory '%s'" % dir_name)
         start_time = time.time()
@@ -168,30 +196,6 @@ class PersonDB():
         os.mkdir(dir_name)
 
         self.save_encodings(dir_name)
-
-        # save using txt
-        persons = sorted(self.persons, key=lambda obj : obj.name)
-        knowns = sorted(self.knowns, key=lambda obj : obj.name)
-
-        now = time.localtime()
-        s = "%04d.%02d.%02d %02d.%02d.%02d.txt" % (now.tm_year, now.tm_mon, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec)
-        f = open(s, 'w')
-
-        total_counts = 0
-        total_visitors = 0
-
-        for known in knowns:
-            data = "{} : {}\n".format(known.name, known.count)
-            f.write(data)
-        for person in persons:
-            if person.count > 0:
-                total_visitors += 1
-                total_counts += person.count
-            data = "{:10} : {}\n".format(person.name, person.count)
-            f.write(data)
-        f.write("\ntotal number of unknown faces : {}". format(total_counts))
-        f.write("\ntotal number of visitors : {}". format(total_visitors))
-        f.close()
 
         elapsed_time = time.time() - start_time
         print("Saving persons finished in %.3f sec." % elapsed_time)
