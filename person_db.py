@@ -130,7 +130,7 @@ class PersonDB():
         files = os.listdir(knownsdir)
         for filename in files:
             name, ext = os.path.splitext(filename)
-            if ext == '.jpg':
+            if ext == '.jpg' or ext == '.png':
                 person = Person(name)
                 pathname = os.path.join(knownsdir, filename)
                 img = face_recognition.load_image_file(pathname)
@@ -160,6 +160,7 @@ class PersonDB():
 
     def save_results(self, start_hour):
         # save using txt
+        print('start save_results')
         persons = sorted(self.persons, key=lambda obj : obj.name)
         knowns = sorted(self.knowns, key=lambda obj : obj.name)
 
@@ -172,15 +173,15 @@ class PersonDB():
 
         for known in knowns:
             data = "{} : {}\n".format(known.name, known.count)
-            known.count = 0
             f.write(data)
+            known.count = 0
         for person in persons:
             if person.count > 0:
                 total_visitors += 1
                 total_counts += person.count
             data = "{:10} : {}\n".format(person.name, person.count)
-            person.count = 0
             f.write(data)
+            person.count = 0
         f.write("total number of unknown faces : {}\n". format(total_counts))
         f.write("total number of visitors : {}". format(total_visitors))
         f.close()

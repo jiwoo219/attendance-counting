@@ -14,11 +14,12 @@ print('start telegram chat bot')
 def get_message(update, context):
     global photo_name
     message = update.message.text
+
     if len(message) == 16:
         year, month, day, start_hour, end_hour = int(message[:4]), int(message[5:7]), int(message[8:10]), int(message[11:13]), int(message[14:16])
         total_faces = 0
         total_visitors = 0
-        
+
         while start_hour != end_hour:
             filename = "%04d.%02d.%02d.%02d-%02d.txt" % (year, month, day, start_hour, start_hour + 1)
         
@@ -44,8 +45,6 @@ def get_message(update, context):
         os.rename(photo_dir + 'tmp.png', photo_dir + message + '.png')
         update.message.reply_text("Face registered")
         photo_name = 0
-
-        
 
 
 
