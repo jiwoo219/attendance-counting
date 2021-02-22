@@ -1,0 +1,12 @@
+hayeon : 0
+jiwoo : 1
+sumin : 0
+person_01  : 0
+person_02  : 2
+person_03  : 3
+person_04  : 0
+person_05  : 0
+person_06  : 0
+person_07  : 0
+total number of unknown faces : 5
+total number of visitors : 2
