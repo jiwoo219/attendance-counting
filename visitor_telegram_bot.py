@@ -3,7 +3,6 @@ from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler, Filters
 
 import os
-import pandas as pd
 
 token = '1676520849:AAG7Vx2QE4XBQJPKrnZotdeKhjoAhZDJufQ'
 photo_dir = './knowns/'
