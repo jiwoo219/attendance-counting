@@ -97,7 +97,7 @@ class FaceClassifier():
                 knowns[index].calculate_average_encoding()
                 face.name = knowns[index].name
             else:
-                if now_time - knowns[index].last_time() > 0.05:
+                if now_time - knowns[index].last_time() > 0.6:
                     knowns[index].count += 1
                 knowns[index].add_face(face)
                 # re-calculate encoding
@@ -135,7 +135,7 @@ class FaceClassifier():
                 persons[index].calculate_average_encoding()
                 face.name = persons[index].name
             else:
-                if now_time - persons[index].last_time() > 0.05:
+                if now_time - persons[index].last_time() > 0.6:
                     persons[index].count += 1
                 persons[index].add_face(face)
                 # re-calculate encoding
@@ -143,14 +143,6 @@ class FaceClassifier():
                 face.name = persons[index].name
 
             return persons[index]
-        else:
-            person = Person()
-            person.count += 1
-            person.add_face(face)
-            person.calculate_average_encoding()
-            face.name = person.name
-            persons.append(person)
-            return person
 
 
     def compare_with_unknown_faces(self, face, unknown_faces):
@@ -168,6 +160,9 @@ class FaceClassifier():
             # two faces are similar - create new person with two faces
             person = Person()
             newly_known_face = unknown_faces.pop(index)
+            
+            person.count += 1
+
             person.add_face(newly_known_face)
             person.add_face(face)
             person.calculate_average_encoding()
@@ -220,7 +215,7 @@ if __name__ == '__main__':
                     help="video file to detect or '0' to detect from web cam")
     ap.add_argument("-t", "--threshold", default=0.4, type=float,
                     help="threshold of the similarity (default=0.44)")
-    ap.add_argument("-S", "--seconds", default=1, type=float,
+    ap.add_argument("-S", "--seconds", default=0.5, type=float,
                     help="seconds between capture")
     ap.add_argument("-s", "--stop", default=0, type=int,
                     help="stop detecting after # seconds")
@@ -320,12 +315,12 @@ if __name__ == '__main__':
             if person:
                 continue
             person = fc.compare_with_persons(face, pdb.persons)
-
-            '''
+            if person:
+                continue
             person = fc.compare_with_unknown_faces(face, pdb.unknown.faces)
             if person:
                 pdb.persons.append(person)
-            '''
+
         
         now = time.localtime()
         now_hour = now.tm_hour
