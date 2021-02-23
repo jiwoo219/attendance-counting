@@ -215,7 +215,7 @@ if __name__ == '__main__':
                     help="video file to detect or '0' to detect from web cam")
     ap.add_argument("-t", "--threshold", default=0.4, type=float,
                     help="threshold of the similarity (default=0.44)")
-    ap.add_argument("-S", "--seconds", default=0.5, type=float,
+    ap.add_argument("-S", "--seconds", default=1, type=float,
                     help="seconds between capture")
     ap.add_argument("-s", "--stop", default=0, type=int,
                     help="stop detecting after # seconds")
