@@ -172,6 +172,9 @@ class PersonDB():
             day += 1
             hour -= 24
         
+        start_hour += 9
+        if start_hour >= 24:
+            start_hour - 24
         s = "%04d.%02d.%02d.%02d-%02d.txt" % (now.tm_year, now.tm_mon, day, start_hour, hour)
         f = open(s, 'w')
 
