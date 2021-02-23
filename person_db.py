@@ -165,7 +165,14 @@ class PersonDB():
         knowns = sorted(self.knowns, key=lambda obj : obj.name)
 
         now = time.localtime()
-        s = "%04d.%02d.%02d.%02d-%02d.txt" % (now.tm_year, now.tm_mon, now.tm_mday, start_hour, now.tm_hour)
+        
+        day = now.tm_mday
+        hour = now.tm_hour + 9
+        if hour >= 24:
+            day += 1
+            hour -= 24
+        
+        s = "%04d.%02d.%02d.%02d-%02d.txt" % (now.tm_year, now.tm_mon, day, start_hour, hour)
         f = open(s, 'w')
 
         total_counts = 0
